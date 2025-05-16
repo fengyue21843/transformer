@@ -107,22 +107,38 @@ class Model(nn.Module):
         else:
             loss = None
         return logits, loss
+    
 
-if __name__ == "__main__":
-    torch.manual_seed(0)
+    def generate(self, x_batch,max_new_tokens = 100):
+        for _ in range(max_new_tokens):
 
-    vocab_size = 1000  # 假设词表大小为 1000
-    model = Model(max_token_value=vocab_size).to(device)
+            x_crop = x_batch[:,-context_length:] #context_length tensor
+            logits, _ = self.forward(x_crop) #[batch_size, context_length, vocab_size]
+            logits = logits[:,-1,:] / temperature #取最后一个时间步的logits
+            probs = F.softmax(logits, dim = -1)
+            predicted_token = torch.multinomial(probs, num_samples = 1) #token
+            x_batch = torch.cat((x_batch,predicted_token),dim = 1)
 
-    # 构造一个假的输入 batch：batch_size=4，sequence_length=16
-    x_batch = torch.randint(0, vocab_size, (batch_size, context_length), dtype=torch.long).to(device)
-    y_batch = torch.randint(0, vocab_size, (batch_size, context_length), dtype=torch.long).to(device)
+            return x_batch
 
-    # 测试 forward
-    logits, loss = model(x_batch, y_batch)
 
-    print("Logits shape:", logits.shape)   # 应为 (4, 16, vocab_size)
-    print("Loss:", loss.item())
+            
+# if __name__ == "__main__":
+#     torch.manual_seed(0)
+
+#     vocab_size = 1000  # 假设词表大小为 1000
+#     model = Model(max_token_value=vocab_size).to(device)
+
+#     # 构造一个假的输入 batch：batch_size=4，sequence_length=16
+#     x_batch = torch.randint(0, vocab_size, (batch_size, context_length), dtype=torch.long).to(device)
+#     y_batch = torch.randint(0, vocab_size, (batch_size, context_length), dtype=torch.long).to(device)
+
+#     # 测试 forward
+#     logits, loss = model(x_batch, y_batch)
+
+#     print("Logits shape:", logits.shape)   # 应为 (4, 16, vocab_size)
+#     print("Loss:", loss.item())
+
 
 
 
